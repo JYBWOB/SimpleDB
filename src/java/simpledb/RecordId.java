@@ -75,8 +75,12 @@ public class RecordId implements Serializable {
         // some code goes here
 
         // TODO: need to check
-        int result = 31 * pageId.hashCode() + tupleNum;
-        return result;
+//        int result = 31 * pageId.hashCode() + tupleNum;
+//        return result;
+
+        return String.valueOf(pageId.hashCode())
+                .concat(String.valueOf(this.tupleNum))
+                .hashCode();
     }
 
 }
