@@ -46,10 +46,11 @@ public class TupleDesc implements Serializable {
             if (o instanceof TDItem) {
                 TDItem another = (TDItem) o;
                 // judge fieldName = null
-                boolean nameEquals = (fieldName == null && another.fieldName == null)
-                        || fieldName.equals(another.fieldName);
+                // boolean nameEquals = (fieldName == null && another.fieldName == null)
+                //         || fieldName.equals(another.fieldName);
                 boolean typeEquals = fieldType.equals(another.fieldType);
-                return nameEquals && typeEquals;
+//                return nameEquals && typeEquals;
+                return typeEquals;
             }
             else return false;
         }
