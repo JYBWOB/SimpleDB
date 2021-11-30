@@ -19,7 +19,8 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class BufferPool {
     /** Bytes per page, including header. */
-    private static final int PAGE_SIZE = 4096;
+    private static int PAGE_SIZE = 4096;
+    private static final int DEFAULT_PAGE_SIZE = 4096;
 
     /** Default number of pages passed to the constructor. This is used by
     other classes. BufferPool should use the numPages argument to the
@@ -118,6 +119,14 @@ public class BufferPool {
         return PAGE_SIZE;
     }
 
+    // 该函数用于BTreeFileInsertTest.java第32行
+    public static void resetPageSize() {
+        BufferPool.PAGE_SIZE = DEFAULT_PAGE_SIZE;
+    }
+    // 该函数用于BTreeFileInsertTest.java第228行
+    public static void setPageSize(int pageSize) {
+        BufferPool.PAGE_SIZE = pageSize;
+    }
 
     /**
      * Retrieve the specified page with the associated permissions.
