@@ -195,7 +195,37 @@ public class BTreeFile implements DbFile {
 			Field f) 
 					throws DbException, TransactionAbortedException {
 		// some code goes here
-        return null;
+		if (pid.pgcateg() == BTreePageId.LEAF) {
+			return (BTreeLeafPage) this.getPage(tid, dirtypages, pid, perm);
+		} else {
+			// internal and page can not be empty
+			BTreePageId nextSearchId;
+			BTreeInternalPage searchPg = (BTreeInternalPage) this.getPage(tid, dirtypages, pid, Permissions.READ_ONLY);
+
+			BTreeEntry entry;
+			Iterator<BTreeEntry> it = searchPg.iterator();
+			if (it.hasNext()) {
+				entry = it.next();
+			} else {
+				throw new DbException("findLeafPage: InternalPage must contain at least one data");
+			}
+
+			if (f == null) {
+				nextSearchId = entry.getLeftChild();
+			} else {
+				while (f.compare(Op.GREATER_THAN, entry.getKey()) && it.hasNext()) {
+					entry = it.next();
+				}
+
+				if (f.compare(Op.LESS_THAN_OR_EQ, entry.getKey())) {
+					nextSearchId = entry.getLeftChild();
+				} else {
+					// greater than the last one
+					nextSearchId = entry.getRightChild();
+				}
+			}
+			return findLeafPage(tid, dirtypages, nextSearchId, perm, f);
+		}
 	}
 	
 	/**
@@ -813,7 +843,7 @@ public class BTreeFile implements DbFile {
 	 * @see #handleMinOccupancyPage(TransactionId, HashMap, BTreePage)
 	 */
 	public ArrayList<Page> deleteTuple(TransactionId tid, Tuple t) 
-			throws DbException, IOException, TransactionAbortedException {
+			throws DbException, TransactionAbortedException {
 		HashMap<PageId, Page> dirtypages = new HashMap<PageId, Page>();
 
 		BTreePageId pageId = new BTreePageId(tableid, t.getRecordId().getPageId().getPageNumber(),
@@ -824,8 +854,14 @@ public class BTreeFile implements DbFile {
 		// if the page is below minimum occupancy, get some tuples from its siblings
 		// or merge with one of the siblings
 		int maxEmptySlots = page.getMaxTuples() - page.getMaxTuples()/2; // ceiling
-		if(page.getNumEmptySlots() > maxEmptySlots) { 
-			handleMinOccupancyPage(tid, dirtypages, page);
+		if(page.getNumEmptySlots() > maxEmptySlots) {
+			// modify to try:catch  need to check
+			try{
+				handleMinOccupancyPage(tid, dirtypages, page);
+			}
+			catch(Exception e){
+				System.out.println("Wrong!");
+			}
 		}
 
 		ArrayList<Page> dirtyPagesArr = new ArrayList<Page>();
