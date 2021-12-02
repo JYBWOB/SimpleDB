@@ -104,6 +104,8 @@ public class BufferPool {
     }
     private final int numPages;
     private final PageBufferPool bufferPool;
+
+    private LockManager lockMgr;
     /**
      * Creates a BufferPool that caches up to numPages pages.
      *
@@ -113,6 +115,7 @@ public class BufferPool {
         // some code goes here
         this.numPages = numPages;
         this.bufferPool = new PageBufferPool(numPages);
+        this.lockMgr = new LockManager(numPages, TRANSATION_FACTOR * numPages);
     }
 
     public static int getPageSize() {
@@ -146,21 +149,45 @@ public class BufferPool {
     public  Page getPage(TransactionId tid, PageId pid, Permissions perm)
             throws TransactionAbortedException, DbException {
         // some code goes here
-        if (bufferPool.containsKey(pid)) {
-            return bufferPool.get(pid);
+//        if (bufferPool.containsKey(pid)) {
+//            return bufferPool.get(pid);
+//        } else {
+//            Page page = Database.getCatalog()
+//                    .getDatabaseFile(pid.getTableId())
+//                    .readPage(pid);
+//
+//            if (bufferPool.size() == numPages) {
+//                evictPage();
+//            }
+//
+//            assert bufferPool.size() < numPages;
+//            bufferPool.put(page.getId(), page);
+//            return page;
+//        }
+        LockManager.LockType lockType;
+        if (perm == Permissions.READ_ONLY) {
+            lockType = LockManager.LockType.SLock;
         } else {
-            Page page = Database.getCatalog()
-                    .getDatabaseFile(pid.getTableId())
-                    .readPage(pid);
+            lockType = LockManager.LockType.XLock;
+        }
+        Debug.log(pid.toString() + ": before acquire lock\n");
+        lockMgr.acquireLock(tid, pid, lockType, DEFAUT_MAXTIMEOUT);
+        Debug.log(pid.toString() + ": acquired the lock\n");
 
-            if (bufferPool.size() == numPages) {
+        Page pg;
+        if (pgBufferPool.containsKey(pid)) {
+            pg = pgBufferPool.get(pid);
+        } else {
+            if (pgBufferPool.size() >= capacity) {
                 evictPage();
             }
-
-            assert bufferPool.size() < numPages;
-            bufferPool.put(page.getId(), page);
-            return page;
+            pg = Database
+                    .getCatalog()
+                    .getDatabaseFile(pid.getTableId())
+                    .readPage(pid);
+            pgBufferPool.put(pid, pg);
         }
+        return pg;
     }
 
     /**
@@ -175,6 +202,7 @@ public class BufferPool {
     public  void releasePage(TransactionId tid, PageId pid) {
         // some code goes here
         // not necessary for lab1|lab2
+        lockMgr.releaseLock(tid, pid);
     }
 
     /**
@@ -191,7 +219,7 @@ public class BufferPool {
     public boolean holdsLock(TransactionId tid, PageId p) {
         // some code goes here
         // not necessary for lab1|lab2
-        return false;
+        return lockMgr.holdsLock(tid, p);
     }
 
     /**
