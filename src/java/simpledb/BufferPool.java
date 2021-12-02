@@ -29,17 +29,7 @@ class LockManager {
         PageId obj;
         ArrayList<TransactionId> holders;
 
-        /*
-        public boolean isBlocked() {
-            return blocked;
-        }
-        public void setBlocked(boolean blocked) {
-            this.blocked = blocked;
-        }
-        */
-
         public ObjLock(LockType t, PageId obj, ArrayList<TransactionId> holders) {
-            // this.blocked = false;
             this.type = t;
             this.obj = obj;
             this.holders = holders;
@@ -95,18 +85,14 @@ class LockManager {
 
     private synchronized void block(PageId what, long start, long timeout)
             throws TransactionAbortedException {
-        // activate blocking
-        // lockTable.get(what).setBlocked(true);
 
         if (System.currentTimeMillis() - start > timeout) {
-            // System.out.println(Thread.currentThread().getId() + ": aborted");
             throw new TransactionAbortedException();
         }
 
         try {
             wait(timeout);
             if (System.currentTimeMillis() - start > timeout) {
-                // System.out.println(Thread.currentThread().getId() + ": aborted");
                 throw new TransactionAbortedException();
             }
         } catch (InterruptedException e) {
